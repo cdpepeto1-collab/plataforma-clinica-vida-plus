@@ -1,0 +1,317 @@
+Clínica Vida+ - Sistema de Console (Projeto Integrado – ADS 2025.2)
+Autor: Carlos Daniel Souza de querioz pinho# 🏥 Plataforma Clínica Vida+
+
+Sistema desenvolvido em Python para gerenciamento de pacientes.
+
+## Funcionalidades
+
+- Cadastro de pacientes
+- Busca por nome
+- Listagem em ordem alfabética
+- Estatísticas (total, média de idade, paciente mais novo e mais velho)
+- Tratamento de erros de entrada
+
+## Tecnologias
+
+- Python 3
+- Listas
+- Dicionários
+- Funções
+- Tratamento de exceções
+
+## Como executar
+
+```bash
+python clinica.py
+```
+
+## Autor
+
+Carlos Daniel Souza de Queiroz Pinho
+
+Descrição: CRUD completo em memória (com persistência em JSON) e menu interativo.
+
+Requisitos contemplados:
+- Cadastro de pacientes (Create)
+- Listagem ordenada por nome (Read)
+- Edição de paciente (Update)
+- Remoção de paciente (Delete)
+- Estatísticas (total, média, mediana, mais novo e mais velho)
+- Busca por nome (parcial, case-insensitive)
+- Persistência em arquivo JSON (dados não se perdem ao fechar)
+- Tratamento de erros de entrada (idade, opções do menu, Ctrl+C/Ctrl+D)
+"""
+
+from __future__ import annotations
+
+import json
+import re
+from dataclasses import dataclass, asdict
+from pathlib import Path
+from statistics import median
+from typing import List, Optional
+
+ARQUIVO_DADOS = Path("pacientes.json")
+
+
+# ---------------------------------------------------------------------------
+# Modelo de dados
+# ---------------------------------------------------------------------------
+
+@dataclass
+class Paciente:
+    id: int
+    nome: str
+    idade: int
+    telefone: str
+
+    def formatado(self) -> str:
+        return f"[{self.id:03d}] {self.nome} | {self.idade} anos | {self.telefone}"
+
+
+# ---------------------------------------------------------------------------
+# Persistência
+# ---------------------------------------------------------------------------
+
+def carregar_pacientes() -> List[Paciente]:
+    if not ARQUIVO_DADOS.exists():
+        return []
+    try:
+        dados = json.loads(ARQUIVO_DADOS.read_text(encoding="utf-8"))
+        return [Paciente(**item) for item in dados]
+    except (json.JSONDecodeError, TypeError, KeyError):
+        print("⚠️  Arquivo de dados corrompido. Iniciando com lista vazia.")
+        return []
+
+
+def salvar_pacientes(pacientes: List[Paciente]) -> None:
+    dados = [asdict(p) for p in pacientes]
+    ARQUIVO_DADOS.write_text(
+        json.dumps(dados, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Utilitários de entrada
+# ---------------------------------------------------------------------------
+
+def ler_texto_obrigatorio(msg: str) -> str:
+    """Lê uma string não vazia, insistindo até receber um valor válido."""
+    while True:
+        valor = input(msg).strip()
+        if valor:
+            return valor
+        print("Este campo não pode ficar vazio.")
+
+
+def ler_int(msg: str, minimo: int = 0, maximo: Optional[int] = None) -> int:
+    """Lê um inteiro dentro de um intervalo, com tratamento de erro."""
+    while True:
+        valor = input(msg).strip()
+        if valor == "":
+            print("Entrada vazia. Digite um número inteiro.")
+            continue
+        try:
+            n = int(valor)
+        except ValueError:
+            print("Entrada inválida. Digite um número inteiro.")
+            continue
+        if n < minimo:
+            print(f"O valor não pode ser menor que {minimo}.")
+            continue
+        if maximo is not None and n > maximo:
+            print(f"O valor não pode ser maior que {maximo}.")
+            continue
+        return n
+
+
+def ler_telefone(msg: str) -> str:
+    """Aceita apenas dígitos, espaços, parênteses, hífen e '+'; exige 8-15 dígitos."""
+    padrao = re.compile(r"^[\d\s()+-]+$")
+    while True:
+        valor = input(msg).strip()
+        if not valor:
+            print("Telefone não pode ficar vazio.")
+            continue
+        if not padrao.match(valor):
+            print("Use apenas números e os símbolos ( ) - +.")
+            continue
+        digitos = re.sub(r"\D", "", valor)
+        if not (8 <= len(digitos) <= 15):
+            print("Telefone deve conter entre 8 e 15 dígitos.")
+            continue
+        return valor
+
+
+def confirmar(msg: str) -> bool:
+    resposta = input(f"{msg} (s/n): ").strip().lower()
+    return resposta in ("s", "sim")
+
+
+# ---------------------------------------------------------------------------
+# Operações CRUD
+# ---------------------------------------------------------------------------
+
+def proximo_id(pacientes: List[Paciente]) -> int:
+    return max((p.id for p in pacientes), default=0) + 1
+
+
+def cadastrar(pacientes: List[Paciente]) -> None:
+    print("\n=== Cadastrar paciente ===")
+    nome = ler_texto_obrigatorio("Nome do paciente: ")
+    idade = ler_int("Idade: ", minimo=0, maximo=130)
+    telefone = ler_telefone("Telefone: ")
+
+    novo = Paciente(id=proximo_id(pacientes), nome=nome, idade=idade, telefone=telefone)
+    pacientes.append(novo)
+    salvar_pacientes(pacientes)
+    print(f"✅ Paciente cadastrado com sucesso! (ID {novo.id:03d})")
+
+
+def listar(pacientes: List[Paciente]) -> None:
+    print("\n=== Todos os pacientes ===")
+    if not pacientes:
+        print("Nenhum paciente cadastrado.")
+        return
+    ordenados = sorted(pacientes, key=lambda p: p.nome.lower())
+    for p in ordenados:
+        print(p.formatado())
+
+
+def buscar(pacientes: List[Paciente]) -> None:
+    print("\n=== Buscar paciente ===")
+    if not pacientes:
+        print("Nenhum paciente cadastrado.")
+        return
+    termo = input("Nome (ou parte): ").strip().lower()
+    if not termo:
+        print("Termo de busca vazio.")
+        return
+    encontrados = [p for p in pacientes if termo in p.nome.lower()]
+    if encontrados:
+        for p in sorted(encontrados, key=lambda p: p.nome.lower()):
+            print(p.formatado())
+    else:
+        print("Nenhum paciente encontrado.")
+
+
+def encontrar_por_id(pacientes: List[Paciente]) -> Optional[Paciente]:
+    id_alvo = ler_int("ID do paciente: ", minimo=1)
+    for p in pacientes:
+        if p.id == id_alvo:
+            return p
+    print("Paciente não encontrado.")
+    return None
+
+
+def editar(pacientes: List[Paciente]) -> None:
+    print("\n=== Editar paciente ===")
+    if not pacientes:
+        print("Nenhum paciente cadastrado.")
+        return
+    listar(pacientes)
+    paciente = encontrar_por_id(pacientes)
+    if paciente is None:
+        return
+
+    print(f"Editando {paciente.formatado()}")
+    print("Deixe em branco para manter o valor atual.")
+
+    novo_nome = input(f"Nome [{paciente.nome}]: ").strip()
+    if novo_nome:
+        paciente.nome = novo_nome
+
+    nova_idade = input(f"Idade [{paciente.idade}]: ").strip()
+    if nova_idade:
+        try:
+            valor = int(nova_idade)
+            if 0 <= valor <= 130:
+                paciente.idade = valor
+            else:
+                print("Idade fora do intervalo permitido; mantido valor anterior.")
+        except ValueError:
+            print("Valor inválido; idade mantida.")
+
+    novo_telefone = input(f"Telefone [{paciente.telefone}]: ").strip()
+    if novo_telefone:
+        paciente.telefone = novo_telefone
+
+    salvar_pacientes(pacientes)
+    print("✅ Paciente atualizado com sucesso!")
+
+
+def remover(pacientes: List[Paciente]) -> None:
+    print("\n=== Remover paciente ===")
+    if not pacientes:
+        print("Nenhum paciente cadastrado.")
+        return
+    listar(pacientes)
+    paciente = encontrar_por_id(pacientes)
+    if paciente is None:
+        return
+
+    if confirmar(f"Confirma remoção de {paciente.nome}?"):
+        pacientes.remove(paciente)
+        salvar_pacientes(pacientes)
+        print("🗑️  Paciente removido com sucesso!")
+    else:
+        print("Operação cancelada.")
+
+
+def estatisticas(pacientes: List[Paciente]) -> None:
+    print("\n=== Estatísticas ===")
+    if not pacientes:
+        print("Nenhum paciente cadastrado.")
+        return
+    idades = [p.idade for p in pacientes]
+    total = len(pacientes)
+    media = sum(idades) / total
+    mediana = median(idades)
+    mais_novo = min(pacientes, key=lambda p: p.idade)
+    mais_velho = max(pacientes, key=lambda p: p.idade)
+
+    print(f"Número total de pacientes: {total}")
+    print(f"Idade média: {media:.1f}")
+    print(f"Idade mediana: {mediana:.1f}")
+    print(f"Mais novo: {mais_novo.nome} ({mais_novo.idade} anos)")
+    print(f"Mais velho: {mais_velho.nome} ({mais_velho.idade} anos)")
+
+
+# ---------------------------------------------------------------------------
+# Menu principal
+# ---------------------------------------------------------------------------
+
+OPCOES = {
+    "1": ("Cadastrar paciente", cadastrar),
+    "2": ("Ver estatísticas", estatisticas),
+    "3": ("Buscar paciente", buscar),
+    "4": ("Listar todos os pacientes", listar),
+    "5": ("Editar paciente", editar),
+    "6": ("Remover paciente", remover),
+}
+
+
+def menu() -> None:
+    pacientes: List[Paciente] = carregar_pacientes()
+    while True:
+        print("\n=== SISTEMA CLÍNICA VIDA+ ===")
+        for chave, (rotulo, _) in OPCOES.items():
+            print(f"{chave}. {rotulo}")
+        print("0. Sair")
+
+        op = input("Escolha uma opção: ").strip()
+        if op == "0":
+            print("Dados salvos. Até logo!")
+            break
+        acao = OPCOES.get(op)
+        if acao:
+            acao[1](pacientes)
+        else:
+            print("Opção inválida. Tente novamente.")
+
+
+if __name__ == "__main__":
+    try:
+        menu()
+    except (KeyboardInterrupt, EOFError):
+        print("\nPrograma interrompido pelo usuário. Até logo!")
