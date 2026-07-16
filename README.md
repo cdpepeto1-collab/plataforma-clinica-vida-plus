@@ -1,4 +1,4 @@
-# plataforma-clinica-vida-plus
+# plataforma-clinica-vida-plus#
 Sistema de gerenciamento de pacientes desenvolvindo em python.com funcionalidades de:  cadastro de pacientes , Busca por nome , listagem em ordem alfabética, Validação de telefone, Estatísticas.
 
 
@@ -6,7 +6,7 @@ Sistema de gerenciamento de pacientes desenvolvindo em python.com funcionalidade
 
 🏥 Plataforma Clínica Vida+
 Sistema desenvolvido em Python para gerenciamento de pacientes.
-Funcionalidades
+Funcionalidades,
 Cadastro de pacientes
 Busca por nome
 Listagem em ordem alfabética
