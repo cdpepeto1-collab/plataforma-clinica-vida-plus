@@ -3,22 +3,33 @@ Sistema de gerenciamento de pacientes desenvolvindo em python.com funcionalidade
 
 
 
+# 🏥 PLATAFORMA CLÍNICA VIDA+
 
-🏥 Plataforma Clínica Vida+
 Sistema desenvolvido em Python para gerenciamento de pacientes.
-Funcionalidades,
-Cadastro de pacientes
-Busca por nome
-Listagem em ordem alfabética
-Estatísticas (total, média de idade, paciente mais novo e mais velho)
-Tratamento de erros de entrada
-Tecnologias
-Python 3
-Listas
-Dicionários
-Funções
-Tratamento de exceções
-Como executar
+
+## Funcionalidades
+
+- Cadastro de pacientes
+- Busca por nome
+- Listagem em ordem alfabética
+- Estatísticas (total, média de idade, paciente mais novo e mais velho)
+- Tratamento de erros de entrada
+
+## Tecnologias
+
+- Python 3
+- Listas
+- Dicionários
+- Funções
+- Tratamento de exceções
+
+## Como executar
+
+```bash
 python clinica.py
-Autor
+```
+
+## Autor
+
 Carlos Daniel Souza de Queiroz Pinho
+
