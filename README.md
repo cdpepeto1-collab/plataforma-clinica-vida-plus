@@ -3,6 +3,8 @@ Sistema de gerenciamento de pacientes desenvolvindo em python.com funcionalidade
 
 
 
+
+
 # 🏥 PLATAFORMA CLÍNICA VIDA+
 
 Sistema desenvolvido em Python para gerenciamento de pacientes.
